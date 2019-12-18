@@ -11,15 +11,10 @@ using namespace metal;
 
 struct VertexIn {
     float3 position  [[attribute(0)]];
-    float3 normal    [[attribute(1)]];
-    float2 texCoords [[attribute(2)]];
 };
 
 struct VertexOut {
     float4 position [[position]];
-    float4 eyeNormal;
-    float4 eyePosition;
-    float2 texCoords;
 };
 
 struct Uniforms {
@@ -33,17 +28,11 @@ vertex VertexOut vertex_main(VertexIn in [[stage_in]],
 {
     VertexOut vertexOut;
     vertexOut.position = uniforms.projectionMatrix * uniforms.viewMatrix * uniforms.modelMatrix * float4(in.position, 1);
-    vertexOut.eyeNormal = uniforms.viewMatrix * uniforms.modelMatrix * float4(in.normal, 0);
-    vertexOut.eyePosition = uniforms.viewMatrix * uniforms.modelMatrix * float4(in.position, 1);
-    vertexOut.texCoords = in.texCoords;
     return vertexOut;
 }
 
-fragment float4 fragment_main(VertexOut in [[stage_in]],
-                              texture2d<float, access::sample> baseColorTexture [[texture(0)]],
-                              sampler baseColorSampler [[sampler(0)]])
+fragment float4 fragment_main(VertexOut in [[stage_in]])
 {
-    float3 baseColor = baseColorTexture.sample(baseColorSampler, in.texCoords).rgb;
-    return float4(baseColor, 1);
+    return float4(0, 1, 0, 1);
 }
 

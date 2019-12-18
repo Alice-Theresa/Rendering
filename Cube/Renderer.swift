@@ -16,53 +16,39 @@ struct Uniforms {
     var projectionMatrix: float4x4
 }
 
-class Renderer {
+class Renderer: NSObject {
     
     let mtkView: MTKView
     let device: MTLDevice
     let commandQueue: MTLCommandQueue
     var renderPipeline: MTLRenderPipelineState?
-    var texture: MTLTexture?
-    let samplerState: MTLSamplerState
-    let depthStencilState: MTLDepthStencilState
     var vertexDescriptor: MTLVertexDescriptor!
     
     var meshes: [MTKMesh] = []
     
     init(mtkView: MTKView) {
-        guard let device = MTLCreateSystemDefaultDevice(),
-            let commandQueue = device.makeCommandQueue() else {
-            fatalError()
+        guard let device = MTLCreateSystemDefaultDevice(), let commandQueue = device.makeCommandQueue() else {
+            fatalError("Init error")
         }
+        mtkView.device = device
         self.device = device
         self.commandQueue = commandQueue
-        mtkView.device = device
         self.mtkView = mtkView
-        samplerState = Renderer.buildSamplerState(device: device)
-        depthStencilState = Renderer.buildDepthStencilState(device: device)
+        super.init()
         loadResources()
         buildPipeline()
     }
     
     func loadResources() {
-        let textureLoader = MTKTextureLoader(device: device)
-        let options: [MTKTextureLoader.Option : Any] = [.generateMipmaps : true, .SRGB : true]
-        texture = try? textureLoader.newTexture(name: "bob_baseColor",
-                                                scaleFactor: 1.0,
-                                                bundle: nil,
-                                                options: options)
         
-        guard let modelURL = Bundle.main.url(forResource: "bob", withExtension: "obj") else {
+        guard let modelURL = Bundle.main.url(forResource: "teapot", withExtension: "obj") else {
             fatalError("No such file")
         }
         let vertexDescriptor = MDLVertexDescriptor()
         vertexDescriptor.attributes[0] = MDLVertexAttribute(name: MDLVertexAttributePosition, format: .float3, offset: 0, bufferIndex: 0)
-        vertexDescriptor.attributes[1] = MDLVertexAttribute(name: MDLVertexAttributeNormal, format: .float3, offset: MemoryLayout<Float>.size * 3, bufferIndex: 0)
-        vertexDescriptor.attributes[2] = MDLVertexAttribute(name: MDLVertexAttributeTextureCoordinate, format: .float2, offset: MemoryLayout<Float>.size * 6, bufferIndex: 0)
         vertexDescriptor.layouts[0] = MDLVertexBufferLayout(stride: MemoryLayout<Float>.size * 8)
         
         self.vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(vertexDescriptor)
-        
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         
         let asset = MDLAsset(url: modelURL, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
@@ -86,7 +72,6 @@ class Renderer {
         pipelineDescriptor.vertexFunction = vertexFunction
         pipelineDescriptor.fragmentFunction = fragmentFunction
         pipelineDescriptor.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat
-        pipelineDescriptor.depthAttachmentPixelFormat = mtkView.depthStencilPixelFormat
         pipelineDescriptor.vertexDescriptor = vertexDescriptor
         
         do {
@@ -95,23 +80,10 @@ class Renderer {
             fatalError("Could not create render pipeline state object: \(error)")
         }
     }
-    
-    static func buildSamplerState(device: MTLDevice) -> MTLSamplerState {
-        let samplerDescriptor = MTLSamplerDescriptor()
-        samplerDescriptor.normalizedCoordinates = true
-        samplerDescriptor.minFilter = .linear
-        samplerDescriptor.magFilter = .linear
-        samplerDescriptor.mipFilter = .linear
-        return device.makeSamplerState(descriptor: samplerDescriptor)!
-    }
-    static func buildDepthStencilState(device: MTLDevice) -> MTLDepthStencilState {
-        let depthStencilDescriptor = MTLDepthStencilDescriptor()
-        depthStencilDescriptor.depthCompareFunction = .less
-        depthStencilDescriptor.isDepthWriteEnabled = true
-        return device.makeDepthStencilState(descriptor: depthStencilDescriptor)!
-    }
-    
-    func draw() {
+}
+
+extension Renderer: MTKViewDelegate {
+    func draw(in view: MTKView) {
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
             let renderPassDescriptor = mtkView.currentRenderPassDescriptor,
             let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor),
@@ -128,13 +100,8 @@ class Renderer {
                                              farZ: 100)
         var uniforms = Uniforms(modelMatrix: model, viewMatrix: view, projectionMatrix: projectionMatrix)
         
-        commandEncoder.setFrontFacing(.counterClockwise)
-        commandEncoder.setCullMode(.back)
         commandEncoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 1)
-        commandEncoder.setDepthStencilState(depthStencilState)
         commandEncoder.setRenderPipelineState(renderPipeline)
-        commandEncoder.setFragmentTexture(texture, index: 0)
-        commandEncoder.setFragmentSamplerState(samplerState, index: 0)
         for mesh in meshes {
             guard let vertexBuffer = mesh.vertexBuffers.first else {
                 continue
@@ -155,4 +122,5 @@ class Renderer {
         commandBuffer.commit()
     }
     
+    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 }
