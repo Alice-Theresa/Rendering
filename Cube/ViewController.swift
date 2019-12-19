@@ -13,6 +13,8 @@ class ViewController: UIViewController {
 
     lazy var mtkView: MTKView = {
         let view = MTKView()
+        view.depthStencilPixelFormat = .depth32Float
+        view.colorPixelFormat = .bgra8Unorm_srgb
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()

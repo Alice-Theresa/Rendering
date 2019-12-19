@@ -27,6 +27,10 @@ class Renderer: NSObject {
     var meshes: [MTKMesh] = []
     var angle: Float = 0
     
+    var texture: MTLTexture?
+    let samplerState: MTLSamplerState
+    let depthStencilState: MTLDepthStencilState
+    
     init(mtkView: MTKView) {
         guard let device = MTLCreateSystemDefaultDevice(), let commandQueue = device.makeCommandQueue() else {
             fatalError("Init error")
@@ -35,17 +39,27 @@ class Renderer: NSObject {
         self.device       = device
         self.commandQueue = commandQueue
         self.mtkView      = mtkView
+        samplerState = Renderer.buildSamplerState(device: device)
+        depthStencilState = Renderer.buildDepthStencilState(device: device)
         super.init()
         loadResources()
         buildPipeline()
     }
     
     func loadResources() {
-        guard let modelURL = Bundle.main.url(forResource: "teapot", withExtension: "obj") else {
+        let textureLoader = MTKTextureLoader(device: device)
+        let options: [MTKTextureLoader.Option : Any] = [.generateMipmaps : true, .SRGB : true]
+        texture = try? textureLoader.newTexture(name: "tank",
+                                                scaleFactor: 1.0,
+                                                bundle: nil,
+                                                options: options)
+        guard let modelURL = Bundle.main.url(forResource: "cup_low", withExtension: "obj") else {
             fatalError("No such file")
         }
         let vertexDescriptor = MDLVertexDescriptor()
         vertexDescriptor.attributes[0] = MDLVertexAttribute(name: MDLVertexAttributePosition, format: .float3, offset: 0, bufferIndex: 0)
+        vertexDescriptor.attributes[1] = MDLVertexAttribute(name: MDLVertexAttributeNormal, format: .float3, offset: MemoryLayout<Float>.size * 3, bufferIndex: 0)
+        vertexDescriptor.attributes[2] = MDLVertexAttribute(name: MDLVertexAttributeTextureCoordinate, format: .float2, offset: MemoryLayout<Float>.size * 6, bufferIndex: 0)
         vertexDescriptor.layouts[0] = MDLVertexBufferLayout(stride: MemoryLayout<Float>.size * 8)
         
         self.vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(vertexDescriptor)
@@ -72,6 +86,7 @@ class Renderer: NSObject {
         pipelineDescriptor.vertexFunction = vertexFunction
         pipelineDescriptor.fragmentFunction = fragmentFunction
         pipelineDescriptor.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat
+        pipelineDescriptor.depthAttachmentPixelFormat = mtkView.depthStencilPixelFormat
         pipelineDescriptor.vertexDescriptor = vertexDescriptor
         
         do {
@@ -79,6 +94,21 @@ class Renderer: NSObject {
         } catch {
             fatalError("Could not create render pipeline state object: \(error)")
         }
+    }
+    
+    static func buildSamplerState(device: MTLDevice) -> MTLSamplerState {
+        let samplerDescriptor = MTLSamplerDescriptor()
+        samplerDescriptor.normalizedCoordinates = true
+        samplerDescriptor.minFilter = .linear
+        samplerDescriptor.magFilter = .linear
+        samplerDescriptor.mipFilter = .linear
+        return device.makeSamplerState(descriptor: samplerDescriptor)!
+    }
+    static func buildDepthStencilState(device: MTLDevice) -> MTLDepthStencilState {
+        let depthStencilDescriptor = MTLDepthStencilDescriptor()
+        depthStencilDescriptor.depthCompareFunction = .less
+        depthStencilDescriptor.isDepthWriteEnabled = true
+        return device.makeDepthStencilState(descriptor: depthStencilDescriptor)!
     }
 }
 
@@ -94,7 +124,7 @@ extension Renderer: MTKViewDelegate {
         
         angle -= 1 / Float(mtkView.preferredFramesPerSecond)
         let modelMatrix = float4x4(rotationAbout: vector_float3(0, 1, 0), by: angle)
-        let viewMatrix = float4x4(translationBy: vector_float3(0, 0, -2))
+        let viewMatrix = float4x4(translationBy: vector_float3(0, 0, -6))
         let projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 3,
                                         aspectRatio: Float(mtkView.drawableSize.width / mtkView.drawableSize.height),
                                         nearZ: 0.1,
@@ -103,6 +133,14 @@ extension Renderer: MTKViewDelegate {
         
         commandEncoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 1)
         commandEncoder.setRenderPipelineState(renderPipeline)
+        
+        commandEncoder.setFrontFacing(.counterClockwise)
+        commandEncoder.setCullMode(.back)
+        
+        commandEncoder.setDepthStencilState(depthStencilState)
+        commandEncoder.setFragmentTexture(texture, index: 0)
+        commandEncoder.setFragmentSamplerState(samplerState, index: 0)
+        
         for mesh in meshes {
             guard let vertexBuffer = mesh.vertexBuffers.first else {
                 continue
