@@ -22,25 +22,25 @@ class Renderer: NSObject {
     let device: MTLDevice
     let commandQueue: MTLCommandQueue
     var renderPipeline: MTLRenderPipelineState?
-    var vertexDescriptor: MTLVertexDescriptor!
+    var vertexDescriptor: MTLVertexDescriptor?
     
     var meshes: [MTKMesh] = []
+    var angle: Float = 0
     
     init(mtkView: MTKView) {
         guard let device = MTLCreateSystemDefaultDevice(), let commandQueue = device.makeCommandQueue() else {
             fatalError("Init error")
         }
-        mtkView.device = device
-        self.device = device
+        mtkView.device    = device
+        self.device       = device
         self.commandQueue = commandQueue
-        self.mtkView = mtkView
+        self.mtkView      = mtkView
         super.init()
         loadResources()
         buildPipeline()
     }
     
     func loadResources() {
-        
         guard let modelURL = Bundle.main.url(forResource: "teapot", withExtension: "obj") else {
             fatalError("No such file")
         }
@@ -92,13 +92,14 @@ extension Renderer: MTKViewDelegate {
                 return
         }
         
-        let model = modelMatrix()
-        let view = viewMatrix()
-        let projectionMatrix = projectMatrix(perspectiveProjectionFov: Float.pi / 3,
-                                             aspectRatio: Float(mtkView.drawableSize.width / mtkView.drawableSize.height),
-                                             nearZ: 0.1,
-                                             farZ: 100)
-        var uniforms = Uniforms(modelMatrix: model, viewMatrix: view, projectionMatrix: projectionMatrix)
+        angle -= 1 / Float(mtkView.preferredFramesPerSecond)
+        let modelMatrix = float4x4(rotationAbout: vector_float3(0, 1, 0), by: angle)
+        let viewMatrix = float4x4(translationBy: vector_float3(0, 0, -2))
+        let projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 3,
+                                        aspectRatio: Float(mtkView.drawableSize.width / mtkView.drawableSize.height),
+                                        nearZ: 0.1,
+                                        farZ: 100)
+        var uniforms = Uniforms(modelMatrix: modelMatrix, viewMatrix: viewMatrix, projectionMatrix: projectionMatrix)
         
         commandEncoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 1)
         commandEncoder.setRenderPipelineState(renderPipeline)

@@ -23,8 +23,7 @@ struct Uniforms {
     float4x4 projectionMatrix;
 };
 
-vertex VertexOut vertex_main(VertexIn in [[stage_in]],
-                             constant Uniforms &uniforms [[buffer(1)]])
+vertex VertexOut vertex_main(VertexIn in [[stage_in]], constant Uniforms &uniforms [[buffer(1)]])
 {
     VertexOut vertexOut;
     vertexOut.position = uniforms.projectionMatrix * uniforms.viewMatrix * uniforms.modelMatrix * float4(in.position, 1);
@@ -33,6 +32,6 @@ vertex VertexOut vertex_main(VertexIn in [[stage_in]],
 
 fragment float4 fragment_main(VertexOut in [[stage_in]])
 {
-    return float4(0, 1, 0, 1);
+    return float4(1, 1, 1, 1);
 }
 
