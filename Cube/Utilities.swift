@@ -52,4 +52,10 @@ extension float4x4 {
                   vector_float4( 0,  0, zz, zw),
                   vector_float4( 0,  0, wz,  1))
     }
+    
+    var normalMatrix: float3x3 {
+        let (c1, c2, c3, _) = columns
+        let upperLeft = float3x3(vector_float3(c1.x, c1.y, c1.z), vector_float3(c2.x, c2.y, c2.z), vector_float3(c3.x, c3.y, c3.z))
+        return upperLeft.transpose.inverse
+    }
 }

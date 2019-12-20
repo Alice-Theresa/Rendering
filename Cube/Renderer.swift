@@ -14,6 +14,7 @@ struct Uniforms {
     var modelMatrix : float4x4
     var viewMatrix: float4x4
     var projectionMatrix: float4x4
+    var normalMatrix: float3x3
 }
 
 class Renderer: NSObject {
@@ -129,7 +130,7 @@ extension Renderer: MTKViewDelegate {
                                         aspectRatio: Float(mtkView.drawableSize.width / mtkView.drawableSize.height),
                                         nearZ: 0.1,
                                         farZ: 100)
-        var uniforms = Uniforms(modelMatrix: modelMatrix, viewMatrix: viewMatrix, projectionMatrix: projectionMatrix)
+        var uniforms = Uniforms(modelMatrix: modelMatrix, viewMatrix: viewMatrix, projectionMatrix: projectionMatrix, normalMatrix: modelMatrix.normalMatrix)
         
         commandEncoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 1)
         commandEncoder.setRenderPipelineState(renderPipeline)
