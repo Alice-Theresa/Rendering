@@ -24,6 +24,7 @@ class Renderer: NSObject {
     let commandQueue: MTLCommandQueue
     var renderPipeline: MTLRenderPipelineState?
     var vertexDescriptor: MTLVertexDescriptor?
+    var library: MTLLibrary?
     
     var meshes: [MTKMesh] = []
     var angle: Float = 0
@@ -31,20 +32,27 @@ class Renderer: NSObject {
     var texture: MTLTexture?
     let samplerState: MTLSamplerState
     let depthStencilState: MTLDepthStencilState
+
+    var skyboxPipeline: MTLRenderPipelineState?
+    var skyMesh: MTKMesh?
+//    var skyboxDescriptor: MTLVertexDescriptor?
+    var skyTexture: MTLTexture?
     
     init(mtkView: MTKView) {
-        guard let device = MTLCreateSystemDefaultDevice(), let commandQueue = device.makeCommandQueue() else {
+        guard let device = MTLCreateSystemDefaultDevice(), let commandQueue = device.makeCommandQueue(), let library = device.makeDefaultLibrary() else {
             fatalError("Init error")
         }
         mtkView.device    = device
         self.device       = device
         self.commandQueue = commandQueue
         self.mtkView      = mtkView
+        self.library = library
         samplerState = Renderer.buildSamplerState(device: device)
         depthStencilState = Renderer.buildDepthStencilState(device: device)
         super.init()
         loadResources()
         buildPipeline()
+        buildSkybox()
     }
     
     func loadResources() {
@@ -76,7 +84,7 @@ class Renderer: NSObject {
     }
     
     func buildPipeline() {
-        guard let library = device.makeDefaultLibrary() else {
+        guard let library = library else {
             fatalError("Could not load default library from main bundle")
         }
         
@@ -97,6 +105,66 @@ class Renderer: NSObject {
         }
     }
     
+    func buildSkybox() {
+        let _skyVertexDescriptor = MTLVertexDescriptor()
+        _skyVertexDescriptor.attributes[0].format = .float3;
+        _skyVertexDescriptor.attributes[0].offset = 0;
+        _skyVertexDescriptor.attributes[0].bufferIndex = 0;
+        _skyVertexDescriptor.layouts[0].stride = 12;
+        _skyVertexDescriptor.attributes[2].format = .float3;
+        _skyVertexDescriptor.attributes[2].offset = 0;
+        _skyVertexDescriptor.attributes[2].bufferIndex = 1;
+        _skyVertexDescriptor.layouts[1].stride = 12;
+        
+        let vertexDescriptor = MDLVertexDescriptor()
+        vertexDescriptor.attributes[0] = MDLVertexAttribute(name: MDLVertexAttributePosition, format: .float3, offset: 0, bufferIndex: 0)
+        vertexDescriptor.attributes[1] = MDLVertexAttribute(name: MDLVertexAttributeNormal, format: .float3, offset: MemoryLayout<Float>.size * 3, bufferIndex: 0)
+        vertexDescriptor.attributes[2] = MDLVertexAttribute(name: MDLVertexAttributeTextureCoordinate, format: .float2, offset: MemoryLayout<Float>.size * 6, bufferIndex: 0)
+        vertexDescriptor.layouts[0] = MDLVertexBufferLayout(stride: MemoryLayout<Float>.size * 8)
+        
+        guard let library = library else {
+            fatalError("Could not load default library from main bundle")
+        }
+        
+        let skyboxVertexFunction = library.makeFunction(name: "skybox_vertex")
+        let skyboxFragmentFunction = library.makeFunction(name: "skybox_fragment")
+        
+        let pipelineDescriptor = MTLRenderPipelineDescriptor()
+        pipelineDescriptor.vertexFunction = skyboxVertexFunction
+        pipelineDescriptor.fragmentFunction = skyboxFragmentFunction
+        pipelineDescriptor.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat
+        pipelineDescriptor.depthAttachmentPixelFormat = mtkView.depthStencilPixelFormat
+        pipelineDescriptor.vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(vertexDescriptor)
+        
+        do {
+            skyboxPipeline = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        } catch {
+            fatalError("Could not create render pipeline state object: \(error)")
+        }
+        
+        let bufferAllocator = MTKMeshBufferAllocator(device: device)
+        let sphereMDLMesh = MDLMesh.init(boxWithExtent: [1, 1, 1], segments: [1, 1, 1], inwardNormals: true, geometryType: .triangles, allocator: bufferAllocator)
+//        let sphereMDLMesh = MDLMesh.newEllipsoid(withRadii: [100, 100, 100], radialSegments: 20, verticalSegments: 20, geometryType: .triangles, inwardNormals: false, hemisphere: false, allocator: bufferAllocator)
+//        let sphereDescriptor = MTKModelIOVertexDescriptorFromMetal(_skyVertexDescriptor)
+//        sphereMDLMesh.vertexDescriptor = sphereDescriptor
+        skyMesh = try! MTKMesh(mesh: sphereMDLMesh, device: device)
+        
+        let textureLoader = MTKTextureLoader(device: device)
+        let cubeExture = MDLSkyCubeTexture(name: "SkyMap",
+                                           channelEncoding: .uInt8,
+                                           textureDimensions: vector_int2(72, 72),
+                                           turbidity: 0.28,
+                                           sunElevation: 0.6,
+                                           upperAtmosphereScattering: 0.1,
+                                           groundAlbedo: 4)
+//        skyTexture = try? textureLoader.newTexture(texture: cubeExture, options: nil)
+        skyTexture = try? textureLoader.newTexture(name: "SkyMap",
+                                                   scaleFactor: 1.0,
+                                                   bundle: nil,
+                                                   options: nil)
+        
+    }
+    
     static func buildSamplerState(device: MTLDevice) -> MTLSamplerState {
         let samplerDescriptor = MTLSamplerDescriptor()
         samplerDescriptor.normalizedCoordinates = true
@@ -110,6 +178,12 @@ class Renderer: NSObject {
         depthStencilDescriptor.depthCompareFunction = .less
         depthStencilDescriptor.isDepthWriteEnabled = true
         return device.makeDepthStencilState(descriptor: depthStencilDescriptor)!
+    }
+    static func buildSkyDepthStencilState(device: MTLDevice) -> MTLDepthStencilState {
+        let descriptor = MTLDepthStencilDescriptor()
+        descriptor.depthCompareFunction = .lessEqual
+        descriptor.isDepthWriteEnabled = true
+        return device.makeDepthStencilState(descriptor: descriptor)!
     }
 }
 
@@ -132,9 +206,9 @@ extension Renderer: MTKViewDelegate {
                                         farZ: 100)
         var uniforms = Uniforms(modelMatrix: modelMatrix, viewMatrix: viewMatrix, projectionMatrix: projectionMatrix, normalMatrix: modelMatrix.normalMatrix)
         
-        commandEncoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 1)
         commandEncoder.setRenderPipelineState(renderPipeline)
         
+        commandEncoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 1)
         commandEncoder.setFrontFacing(.counterClockwise)
         commandEncoder.setCullMode(.back)
         
@@ -157,6 +231,26 @@ extension Renderer: MTKViewDelegate {
                                                      indexBufferOffset: indexBuffer.offset)
             }
         }
+        // MARK: sky
+        
+        uniforms = Uniforms(modelMatrix: float4x4(scaleBy: 3), viewMatrix: viewMatrix, projectionMatrix: projectionMatrix, normalMatrix: modelMatrix.normalMatrix)
+        
+        commandEncoder.setRenderPipelineState(skyboxPipeline!)
+//        commandEncoder.setDepthStencilState(Renderer.buildSkyDepthStencilState(device: device))
+        commandEncoder.setCullMode(.back)
+        
+        commandEncoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 1)
+        commandEncoder.setFragmentTexture(skyTexture!, index: 0)
+        for (index, buffer) in skyMesh!.vertexBuffers.enumerated() {
+            commandEncoder.setVertexBuffer(buffer.buffer, offset: buffer.offset, index: index)
+        }
+        let submesh = skyMesh!.submeshes[0]
+        commandEncoder.drawIndexedPrimitives(type: submesh.primitiveType,
+                                            indexCount: submesh.indexCount,
+                                            indexType: submesh.indexType,
+                                            indexBuffer: submesh.indexBuffer.buffer,
+                                            indexBufferOffset: submesh.indexBuffer.offset)
+        
         commandEncoder.endEncoding()
         commandBuffer.present(drawable)
         commandBuffer.commit()
