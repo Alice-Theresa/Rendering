@@ -14,7 +14,7 @@ using namespace metal;
 typedef struct
 {
     float4 position [[attribute(0)]];
-    float3 normal   [[attribute(2)]];
+    float3 normal   [[attribute(1)]];
 } SkyboxVertex;
 
 typedef struct
@@ -33,8 +33,8 @@ struct Uniforms {
 vertex SkyboxInOut skybox_vertex(SkyboxVertex in [[ stage_in ]], constant Uniforms & uniforms [[ buffer(1) ]])
 {
     SkyboxInOut out;
-    out.position = uniforms.projectionMatrix * uniforms.viewMatrix * uniforms.modelMatrix * in.position;
-    out.texcoord = in.normal;
+    out.position = (uniforms.projectionMatrix * uniforms.viewMatrix * in.position).xyww;
+    out.texcoord = in.position.xyz;
     return out;
 }
 

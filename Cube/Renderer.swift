@@ -106,15 +106,6 @@ class Renderer: NSObject {
     }
     
     func buildSkybox() {
-        let _skyVertexDescriptor = MTLVertexDescriptor()
-        _skyVertexDescriptor.attributes[0].format = .float3;
-        _skyVertexDescriptor.attributes[0].offset = 0;
-        _skyVertexDescriptor.attributes[0].bufferIndex = 0;
-        _skyVertexDescriptor.layouts[0].stride = 12;
-        _skyVertexDescriptor.attributes[2].format = .float3;
-        _skyVertexDescriptor.attributes[2].offset = 0;
-        _skyVertexDescriptor.attributes[2].bufferIndex = 1;
-        _skyVertexDescriptor.layouts[1].stride = 12;
         
         let vertexDescriptor = MDLVertexDescriptor()
         vertexDescriptor.attributes[0] = MDLVertexAttribute(name: MDLVertexAttributePosition, format: .float3, offset: 0, bufferIndex: 0)
@@ -144,23 +135,12 @@ class Renderer: NSObject {
         
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let sphereMDLMesh = MDLMesh.init(boxWithExtent: [1, 1, 1], segments: [1, 1, 1], inwardNormals: true, geometryType: .triangles, allocator: bufferAllocator)
-//        let sphereMDLMesh = MDLMesh.newEllipsoid(withRadii: [100, 100, 100], radialSegments: 20, verticalSegments: 20, geometryType: .triangles, inwardNormals: false, hemisphere: false, allocator: bufferAllocator)
-//        let sphereDescriptor = MTKModelIOVertexDescriptorFromMetal(_skyVertexDescriptor)
-//        sphereMDLMesh.vertexDescriptor = sphereDescriptor
         skyMesh = try! MTKMesh(mesh: sphereMDLMesh, device: device)
         
         let textureLoader = MTKTextureLoader(device: device)
-        let cubeExture = MDLSkyCubeTexture(name: "SkyMap",
-                                           channelEncoding: .uInt8,
-                                           textureDimensions: vector_int2(72, 72),
-                                           turbidity: 0.28,
-                                           sunElevation: 0.6,
-                                           upperAtmosphereScattering: 0.1,
-                                           groundAlbedo: 4)
-//        skyTexture = try? textureLoader.newTexture(texture: cubeExture, options: nil)
         skyTexture = try? textureLoader.newTexture(name: "SkyMap",
                                                    scaleFactor: 1.0,
-                                                   bundle: nil,
+                                                   bundle: .main,
                                                    options: nil)
         
     }
@@ -199,7 +179,7 @@ extension Renderer: MTKViewDelegate {
         
         angle -= 1 / Float(mtkView.preferredFramesPerSecond)
         let modelMatrix = float4x4(rotationAbout: vector_float3(0, 1, 0), by: angle)
-        let viewMatrix = float4x4(translationBy: vector_float3(0, 0, -6))
+        var viewMatrix = float4x4(translationBy: vector_float3(0, 0, -6))
         let projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 3,
                                         aspectRatio: Float(mtkView.drawableSize.width / mtkView.drawableSize.height),
                                         nearZ: 0.1,
@@ -232,24 +212,20 @@ extension Renderer: MTKViewDelegate {
             }
         }
         // MARK: sky
-        
-        uniforms = Uniforms(modelMatrix: float4x4(scaleBy: 3), viewMatrix: viewMatrix, projectionMatrix: projectionMatrix, normalMatrix: modelMatrix.normalMatrix)
+        viewMatrix.columns.3 = [0, 0, 0, 1]
+        uniforms = Uniforms(modelMatrix: float4x4(scaleBy: 1), viewMatrix: viewMatrix, projectionMatrix: projectionMatrix, normalMatrix: modelMatrix.normalMatrix)
         
         commandEncoder.setRenderPipelineState(skyboxPipeline!)
-//        commandEncoder.setDepthStencilState(Renderer.buildSkyDepthStencilState(device: device))
-        commandEncoder.setCullMode(.back)
-        
+        commandEncoder.setDepthStencilState(Renderer.buildSkyDepthStencilState(device: device))
+        commandEncoder.setVertexBuffer(skyMesh!.vertexBuffers[0].buffer, offset: 0, index: 0)
         commandEncoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 1)
         commandEncoder.setFragmentTexture(skyTexture!, index: 0)
-        for (index, buffer) in skyMesh!.vertexBuffers.enumerated() {
-            commandEncoder.setVertexBuffer(buffer.buffer, offset: buffer.offset, index: index)
-        }
         let submesh = skyMesh!.submeshes[0]
-        commandEncoder.drawIndexedPrimitives(type: submesh.primitiveType,
+        commandEncoder.drawIndexedPrimitives(type: .triangle,
                                             indexCount: submesh.indexCount,
                                             indexType: submesh.indexType,
                                             indexBuffer: submesh.indexBuffer.buffer,
-                                            indexBufferOffset: submesh.indexBuffer.offset)
+                                            indexBufferOffset: 0)
         
         commandEncoder.endEncoding()
         commandBuffer.present(drawable)
