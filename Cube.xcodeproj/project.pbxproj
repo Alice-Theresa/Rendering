@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9433EA3123AF1F2F00462C84 /* cube.mtl in Resources */ = {isa = PBXBuildFile; fileRef = 9433EA2F23AF1F2F00462C84 /* cube.mtl */; };
+		9433EA3223AF1F2F00462C84 /* cube.obj in Resources */ = {isa = PBXBuildFile; fileRef = 9433EA3023AF1F2F00462C84 /* cube.obj */; };
 		9440682323A9CAD800A8FCB4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9440682223A9CAD800A8FCB4 /* AppDelegate.swift */; };
 		9440682723A9CAD800A8FCB4 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9440682623A9CAD800A8FCB4 /* ViewController.swift */; };
 		9440682A23A9CAD800A8FCB4 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9440682823A9CAD800A8FCB4 /* Main.storyboard */; };
@@ -16,13 +18,16 @@
 		9440683923A9CF7600A8FCB4 /* Shader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 9440683823A9CF7600A8FCB4 /* Shader.metal */; };
 		9440683C23A9D98700A8FCB4 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9440683B23A9D98700A8FCB4 /* Utilities.swift */; };
 		9440683E23A9E28400A8FCB4 /* teapot.obj in Resources */ = {isa = PBXBuildFile; fileRef = 9440683D23A9E28300A8FCB4 /* teapot.obj */; };
-		9440684223AA1A6300A8FCB4 /* cube.obj in Resources */ = {isa = PBXBuildFile; fileRef = 9440684123AA1A6300A8FCB4 /* cube.obj */; };
 		9440684423AA1ADC00A8FCB4 /* bob.obj in Resources */ = {isa = PBXBuildFile; fileRef = 9440684323AA1ADC00A8FCB4 /* bob.obj */; };
 		9440686823AB6F5200A8FCB4 /* cup_low.obj in Resources */ = {isa = PBXBuildFile; fileRef = 9440686723AB6F5200A8FCB4 /* cup_low.obj */; };
 		9440686E23ACAE1900A8FCB4 /* Skybox.metal in Sources */ = {isa = PBXBuildFile; fileRef = 9440686D23ACAE1900A8FCB4 /* Skybox.metal */; };
+		94F0704F23AF0BEB001E8799 /* untitled.obj in Resources */ = {isa = PBXBuildFile; fileRef = 94F0704D23AF0BEB001E8799 /* untitled.obj */; };
+		94F0705023AF0BEB001E8799 /* untitled.mtl in Resources */ = {isa = PBXBuildFile; fileRef = 94F0704E23AF0BEB001E8799 /* untitled.mtl */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		9433EA2F23AF1F2F00462C84 /* cube.mtl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cube.mtl; sourceTree = "<group>"; };
+		9433EA3023AF1F2F00462C84 /* cube.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cube.obj; sourceTree = "<group>"; };
 		9440681F23A9CAD800A8FCB4 /* Cube.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Cube.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9440682223A9CAD800A8FCB4 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9440682623A9CAD800A8FCB4 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -34,10 +39,11 @@
 		9440683823A9CF7600A8FCB4 /* Shader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shader.metal; sourceTree = "<group>"; };
 		9440683B23A9D98700A8FCB4 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		9440683D23A9E28300A8FCB4 /* teapot.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = teapot.obj; sourceTree = "<group>"; };
-		9440684123AA1A6300A8FCB4 /* cube.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cube.obj; sourceTree = "<group>"; };
 		9440684323AA1ADC00A8FCB4 /* bob.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = bob.obj; sourceTree = "<group>"; };
 		9440686723AB6F5200A8FCB4 /* cup_low.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cup_low.obj; sourceTree = "<group>"; };
 		9440686D23ACAE1900A8FCB4 /* Skybox.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Skybox.metal; sourceTree = "<group>"; };
+		94F0704D23AF0BEB001E8799 /* untitled.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = untitled.obj; sourceTree = "<group>"; };
+		94F0704E23AF0BEB001E8799 /* untitled.mtl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = untitled.mtl; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,8 +78,11 @@
 			children = (
 				9440683D23A9E28300A8FCB4 /* teapot.obj */,
 				9440684323AA1ADC00A8FCB4 /* bob.obj */,
-				9440684123AA1A6300A8FCB4 /* cube.obj */,
 				9440686723AB6F5200A8FCB4 /* cup_low.obj */,
+				94F0704E23AF0BEB001E8799 /* untitled.mtl */,
+				94F0704D23AF0BEB001E8799 /* untitled.obj */,
+				9433EA2F23AF1F2F00462C84 /* cube.mtl */,
+				9433EA3023AF1F2F00462C84 /* cube.obj */,
 				9440682223A9CAD800A8FCB4 /* AppDelegate.swift */,
 				9440682623A9CAD800A8FCB4 /* ViewController.swift */,
 				9440683823A9CF7600A8FCB4 /* Shader.metal */,
@@ -146,12 +155,15 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9433EA3123AF1F2F00462C84 /* cube.mtl in Resources */,
 				9440683E23A9E28400A8FCB4 /* teapot.obj in Resources */,
-				9440684223AA1A6300A8FCB4 /* cube.obj in Resources */,
 				9440682F23A9CAD900A8FCB4 /* LaunchScreen.storyboard in Resources */,
 				9440684423AA1ADC00A8FCB4 /* bob.obj in Resources */,
+				94F0705023AF0BEB001E8799 /* untitled.mtl in Resources */,
 				9440682C23A9CAD900A8FCB4 /* Assets.xcassets in Resources */,
+				9433EA3223AF1F2F00462C84 /* cube.obj in Resources */,
 				9440682A23A9CAD800A8FCB4 /* Main.storyboard in Resources */,
+				94F0704F23AF0BEB001E8799 /* untitled.obj in Resources */,
 				9440686823AB6F5200A8FCB4 /* cup_low.obj in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
