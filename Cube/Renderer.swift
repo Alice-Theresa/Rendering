@@ -65,22 +65,31 @@ class Renderer: NSObject {
             fatalError("No such file")
         }
         let vertexDescriptor = MDLVertexDescriptor()
-        vertexDescriptor.attributes[0] = MDLVertexAttribute(name: MDLVertexAttributePosition, format: .float3, offset: 0, bufferIndex: 0)
-        vertexDescriptor.attributes[1] = MDLVertexAttribute(name: MDLVertexAttributeNormal, format: .float3, offset: MemoryLayout<Float>.size * 3, bufferIndex: 0)
-        vertexDescriptor.attributes[2] = MDLVertexAttribute(name: MDLVertexAttributeTextureCoordinate, format: .float2, offset: MemoryLayout<Float>.size * 6, bufferIndex: 0)
+        vertexDescriptor.attributes[0] = MDLVertexAttribute(name: MDLVertexAttributePosition,
+                                                            format: .float3,
+                                                            offset: 0,
+                                                            bufferIndex: 0)
+        vertexDescriptor.attributes[1] = MDLVertexAttribute(name: MDLVertexAttributeNormal,
+                                                            format: .float3,
+                                                            offset: MemoryLayout<Float>.size * 3,
+                                                            bufferIndex: 0)
+        vertexDescriptor.attributes[2] = MDLVertexAttribute(name: MDLVertexAttributeTextureCoordinate,
+                                                            format: .float2,
+                                                            offset: MemoryLayout<Float>.size * 6,
+                                                            bufferIndex: 0)
         vertexDescriptor.layouts[0] = MDLVertexBufferLayout(stride: MemoryLayout<Float>.size * 8)
         
         
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         
         let asset = MDLAsset(url: modelURL, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
-        let mdlMeshes = asset.childObjects(of: MDLMesh.self) as! [MDLMesh]
-        _ = mdlMeshes.map { mdlMesh in
-            mdlMesh.addTangentBasis(forTextureCoordinateAttributeNamed: MDLVertexAttributeTextureCoordinate,
-                                    tangentAttributeNamed: MDLVertexAttributeTangent,
-                                    bitangentAttributeNamed: MDLVertexAttributeBitangent)
-            meshes.append(try! MTKMesh(mesh: mdlMesh, device: device))
-            self.vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(mdlMesh.vertexDescriptor)
+        for sourceMesh in asset.childObjects(of: MDLMesh.self) as! [MDLMesh] {
+            sourceMesh.addTangentBasis(forTextureCoordinateAttributeNamed: MDLVertexAttributeTextureCoordinate,
+                                       tangentAttributeNamed: MDLVertexAttributeTangent,
+                                       bitangentAttributeNamed: MDLVertexAttributeBitangent)
+//            sourceMesh.vertexDescriptor = vertexDescriptor
+            meshes.append(try! MTKMesh(mesh: sourceMesh, device: device))
+            self.vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(sourceMesh.vertexDescriptor)
         }
     }
     
@@ -131,8 +140,8 @@ extension Renderer: MTKViewDelegate {
                 return
         }
         
-        angle -= 1 / Float(mtkView.preferredFramesPerSecond)
-        let modelMatrix = float4x4(rotationAbout: vector_float3(0, 1, 0), by: angle)
+        angle += 1 / Float(mtkView.preferredFramesPerSecond)
+        let modelMatrix =  float4x4(rotationAbout: vector_float3(0, 0, 1), by: angle)// * float4x4(scaleBy: 2)
         let viewMatrix = float4x4(translationBy: vector_float3(0, 0, -6))
         let projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 3,
                                         aspectRatio: Float(mtkView.drawableSize.width / mtkView.drawableSize.height),
